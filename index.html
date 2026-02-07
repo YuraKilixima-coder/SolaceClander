@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>Solace的情话日历</title>
+  <style>
+    body {
+      font-family: "Comic Sans MS", cursive;
+      background: linear-gradient(to bottom, #e6f7ff, #ffffff);
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    header {
+      text-align: center;
+      padding: 1em;
+      background-color: #cceeff;
+      color: #333;
+      font-size: 1.6em;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .calendar-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 2em;
+    }
+    .controls {
+      margin-bottom: 1em;
+    }
+    select, button {
+      font-size: 1em;
+      padding: 0.4em;
+      margin: 0.2em;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      max-width: 720px;
+      width: 100%;
+    }
+    .day {
+      background-color: #f0faff;
+      padding: 1em;
+      text-align: center;
+      border-radius: 8px;
+      cursor: pointer;
+      position: relative;
+    }
+    .day:hover {
+      background-color: #d9f2ff;
+    }
+    .special {
+      background-color: #ffe0f0 !important;
+      font-weight: bold;
+      border: 2px solid #ff99cc;
+    }
+    .popup {
+      display: none;
+      position: fixed;
+      background: url('https://i.imgur.com/CGGH5i5.png') no-repeat center center;
+      background-size: cover;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 2em;
+      width: 300px;
+      height: 200px;
+      color: #333;
+      font-size: 1.1em;
+      border-radius: 10px;
+      z-index: 100;
+      box-shadow: 0 0 10px #999;
+    }
+    .popup p {
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 1em;
+      border-radius: 8px;
+    }
+    .popup.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <header>Solace的情话日历</header>
+  <div class="calendar-container">
+    <div class="controls">
+      <select id="year"></select>
+      <select id="month"></select>
+      <button onclick="renderCalendar()">跳转</button>
+    </div>
+    <div id="calendar" class="calendar"></div>
+  </div>
+  <div id="popup" class="popup"><p id="popupText"></p></div>
+
+  <script>
+    const popup = document.getElementById('popup');
+    const popupText = document.getElementById('popupText');
+    const calendarDiv = document.getElementById('calendar');
+    const years = document.getElementById('year');
+    const months = document.getElementById('month');
+    const messages = {};
+
+    async function loadMessages() {
+      const res = await fetch('daily_messages_2026_2027.csv');
+      const text = await res.text();
+      const rows = text.split("\n");
+      rows.slice(1).forEach(row => {
+        const [date, message] = row.split(',');
+        if (date && message) messages[date] = decodeURIComponent(message);
+      });
+    }
+
+    function renderCalendar() {
+      const year = parseInt(years.value);
+      const month = parseInt(months.value);
+      const firstDay = new Date(year, month, 1);
+      const startDay = firstDay.getDay();
+      const lastDate = new Date(year, month + 1, 0).getDate();
+      calendarDiv.innerHTML = '';
+
+      for (let i = 0; i < startDay; i++) {
+        calendarDiv.innerHTML += '<div></div>';
+      }
+
+      for (let day = 1; day <= lastDate; day++) {
+        const dateStr = `${year}-${(month+1).toString().padStart(2,'0')}-${day.toString().padStart(2,'0')}`;
+        const special = (dateStr.endsWith('03-07') || dateStr.endsWith('01-19') || dateStr.endsWith('01-20')) ? ' special' : '';
+        const dayDiv = document.createElement('div');
+        dayDiv.className = `day${special}`;
+        dayDiv.innerText = day;
+        dayDiv.onclick = () => {
+          popupText.innerText = messages[dateStr] || '这一天，我只想陪着你';
+          popup.classList.add('show');
+          setTimeout(() => popup.classList.remove('show'), 5000);
+        };
+        calendarDiv.appendChild(dayDiv);
+      }
+    }
+
+    for (let y = 2026; y <= 2027; y++) {
+      const opt = document.createElement('option');
+      opt.value = y;
+      opt.innerText = y;
+      years.appendChild(opt);
+    }
+    for (let m = 0; m < 12; m++) {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.innerText = `${m + 1}月`;
+      months.appendChild(opt);
+    }
+
+    const today = new Date();
+    years.value = today.getFullYear();
+    months.value = today.getMonth();
+
+    loadMessages().then(renderCalendar);
+  </script>
+</body>
+</html>
